@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AG - Problema do Cavalo do Xadrez</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section class="board-panel">
+        <div class="board-header">
+          <div>
+            <p class="eyebrow">Problema do Cavalo</p>
+            <h1>Passeio por 64 casas</h1>
+          </div>
+          <div class="status-pill" id="statusText">Pronto</div>
+        </div>
+
+        <div class="board-stage">
+          <div class="board-shell">
+            <div class="board" id="board" aria-label="Tabuleiro de xadrez 8 por 8"></div>
+            <svg class="path-layer" id="pathLayer" aria-hidden="true"></svg>
+          </div>
+        </div>
+
+        <div class="trajectory-panel">
+          <div class="trajectory-title">
+            <strong>Trajetória obtida</strong>
+            <span id="routeSummary">Aguardando execução</span>
+          </div>
+          <ol class="trajectory-list" id="trajectoryList"></ol>
+        </div>
+      </section>
+
+      <aside class="control-panel">
+        <form id="controlForm" class="controls">
+          <h2>Controles do AG</h2>
+
+          <label>
+            População
+            <input type="number" name="population" min="20" max="1000" step="10" value="240" />
+          </label>
+
+          <label>
+            Gerações
+            <input type="number" name="generations" min="1" max="20000" step="100" value="1000" />
+          </label>
+
+          <div class="split">
+            <label>
+              Torneio
+              <input type="number" name="tournament" min="2" max="64" value="4" />
+            </label>
+            <label>
+              Elites
+              <input type="number" name="elitism" min="1" max="128" value="6" />
+            </label>
+          </div>
+
+          <label>
+            Cruzamento ordenado
+            <input type="range" name="crossover" min="0" max="1" step="0.01" value="0.9" data-output="crossoverValue" />
+            <span class="range-value" id="crossoverValue">90%</span>
+          </label>
+
+          <label>
+            Taxa de mutação
+            <input type="range" name="mutationRate" min="0" max="1" step="0.01" value="0.35" data-output="mutationValue" />
+            <span class="range-value" id="mutationValue">35%</span>
+          </label>
+
+          <label>
+            Operador de mutação
+            <select name="mutationOperator">
+              <option value="mixed">Mista</option>
+              <option value="swap">Troca</option>
+              <option value="insert">Inserção</option>
+              <option value="inversion">Inversão</option>
+              <option value="shuffle">Embaralhamento</option>
+            </select>
+          </label>
+
+          <label>
+            Semente
+            <input type="number" name="seed" placeholder="aleatória" />
+          </label>
+
+          <label class="check-row">
+            <input type="checkbox" name="warmStart" checked />
+            Inicialização heurística
+          </label>
+
+          <div class="button-row">
+            <button type="submit" class="primary" id="startButton">Iniciar</button>
+            <button type="button" id="stopButton" disabled>Parar</button>
+          </div>
+        </form>
+
+        <section class="metrics" aria-live="polite">
+          <div>
+            <span>Geração</span>
+            <strong id="metricGeneration">0</strong>
+          </div>
+          <div>
+            <span>Movimentos válidos</span>
+            <strong id="metricValid">0/63</strong>
+          </div>
+          <div>
+            <span>Inválidos</span>
+            <strong id="metricInvalid">63</strong>
+          </div>
+          <div>
+            <span>Casas únicas</span>
+            <strong id="metricUnique">0/64</strong>
+          </div>
+          <div>
+            <span>Fitness</span>
+            <strong id="metricFitness">0</strong>
+          </div>
+          <div>
+            <span>Tempo</span>
+            <strong id="metricTime">0s</strong>
+          </div>
+        </section>
+      </aside>
+    </main>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>
