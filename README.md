@@ -169,6 +169,7 @@ Durante a execucao, a aplicacao exibe:
 - Valor de fitness.
 - Tempo de execucao.
 - Trajetoria obtida.
+- Grafico de desempenho com a evolucao do fitness e dos movimentos validos ao longo das geracoes.
 
 ## 7. Resultado Obtido
 

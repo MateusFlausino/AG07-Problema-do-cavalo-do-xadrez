@@ -6,6 +6,9 @@ const stopButton = document.querySelector("#stopButton");
 const statusText = document.querySelector("#statusText");
 const trajectoryList = document.querySelector("#trajectoryList");
 const routeSummary = document.querySelector("#routeSummary");
+const performanceCanvas = document.querySelector("#performanceChart");
+const performanceContext = performanceCanvas.getContext("2d");
+const chartSummary = document.querySelector("#chartSummary");
 
 const metrics = {
   generation: document.querySelector("#metricGeneration"),
@@ -18,6 +21,7 @@ const metrics = {
 
 let eventSource = null;
 let latestState = null;
+let performanceHistory = [];
 
 function createBoard() {
   const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
@@ -145,11 +149,150 @@ function renderMetrics(state) {
   metrics.time.textContent = `${state.elapsed_seconds}s`;
 }
 
+function resizePerformanceCanvas() {
+  const bounds = performanceCanvas.getBoundingClientRect();
+  const ratio = window.devicePixelRatio || 1;
+  const width = Math.max(320, Math.floor(bounds.width * ratio));
+  const height = Math.max(190, Math.floor(bounds.height * ratio));
+
+  if (performanceCanvas.width !== width || performanceCanvas.height !== height) {
+    performanceCanvas.width = width;
+    performanceCanvas.height = height;
+  }
+
+  performanceContext.setTransform(ratio, 0, 0, ratio, 0, 0);
+}
+
+function drawLine(points, color, getValue, minValue, maxValue, chart) {
+  if (points.length === 0) {
+    return;
+  }
+
+  const range = maxValue - minValue || 1;
+  const maxGeneration = Math.max(...points.map((point) => point.generation), 1);
+
+  performanceContext.beginPath();
+  performanceContext.lineWidth = 2.4;
+  performanceContext.strokeStyle = color;
+
+  points.forEach((point, index) => {
+    const x = chart.left + (point.generation / maxGeneration) * chart.width;
+    const normalized = (getValue(point) - minValue) / range;
+    const y = chart.top + chart.height - normalized * chart.height;
+
+    if (index === 0) {
+      performanceContext.moveTo(x, y);
+    } else {
+      performanceContext.lineTo(x, y);
+    }
+  });
+
+  performanceContext.stroke();
+
+  const lastPoint = points.at(-1);
+  const x = chart.left + (lastPoint.generation / maxGeneration) * chart.width;
+  const normalized = (getValue(lastPoint) - minValue) / range;
+  const y = chart.top + chart.height - normalized * chart.height;
+  performanceContext.fillStyle = color;
+  performanceContext.beginPath();
+  performanceContext.arc(x, y, 4, 0, Math.PI * 2);
+  performanceContext.fill();
+}
+
+function drawPerformanceChart() {
+  resizePerformanceCanvas();
+
+  const width = performanceCanvas.clientWidth;
+  const height = performanceCanvas.clientHeight;
+  const chart = {
+    left: 42,
+    right: 16,
+    top: 16,
+    bottom: 32,
+  };
+  chart.width = width - chart.left - chart.right;
+  chart.height = height - chart.top - chart.bottom;
+
+  performanceContext.clearRect(0, 0, width, height);
+  performanceContext.fillStyle = "#fbfcfa";
+  performanceContext.fillRect(0, 0, width, height);
+
+  performanceContext.strokeStyle = "#d7dcd2";
+  performanceContext.lineWidth = 1;
+  performanceContext.fillStyle = "#66736b";
+  performanceContext.font = "12px Inter, system-ui, sans-serif";
+
+  for (let index = 0; index <= 4; index += 1) {
+    const y = chart.top + (chart.height / 4) * index;
+    performanceContext.beginPath();
+    performanceContext.moveTo(chart.left, y);
+    performanceContext.lineTo(chart.left + chart.width, y);
+    performanceContext.stroke();
+
+    const validValue = Math.round(63 - (63 / 4) * index);
+    performanceContext.fillText(String(validValue), 10, y + 4);
+  }
+
+  performanceContext.strokeStyle = "#9da89e";
+  performanceContext.beginPath();
+  performanceContext.moveTo(chart.left, chart.top);
+  performanceContext.lineTo(chart.left, chart.top + chart.height);
+  performanceContext.lineTo(chart.left + chart.width, chart.top + chart.height);
+  performanceContext.stroke();
+
+  if (performanceHistory.length === 0) {
+    performanceContext.fillStyle = "#66736b";
+    performanceContext.textAlign = "center";
+    performanceContext.fillText("Inicie o AG para gerar o grafico", width / 2, height / 2);
+    performanceContext.textAlign = "left";
+    return;
+  }
+
+  const fitnessValues = performanceHistory.map((point) => point.fitness);
+  const minFitness = Math.min(0, ...fitnessValues);
+  const maxFitness = Math.max(1, ...fitnessValues);
+
+  drawLine(performanceHistory, "#007f7a", (point) => point.fitness, minFitness, maxFitness, chart);
+  drawLine(performanceHistory, "#c84c31", (point) => point.validMoves, 0, 63, chart);
+
+  const last = performanceHistory.at(-1);
+  performanceContext.fillStyle = "#66736b";
+  performanceContext.fillText("0", chart.left - 4, chart.top + chart.height + 20);
+  performanceContext.textAlign = "right";
+  performanceContext.fillText(String(last.generation), chart.left + chart.width, chart.top + chart.height + 20);
+  performanceContext.textAlign = "left";
+}
+
+function recordPerformance(state) {
+  const point = {
+    generation: state.generation,
+    fitness: Number(state.fitness),
+    validMoves: Number(state.valid_moves),
+  };
+
+  const last = performanceHistory.at(-1);
+  if (last?.generation === point.generation) {
+    performanceHistory[performanceHistory.length - 1] = point;
+  } else {
+    performanceHistory.push(point);
+  }
+
+  chartSummary.textContent = `Geração ${point.generation}: fitness ${point.fitness} e ${point.validMoves}/63 movimentos válidos.`;
+  drawPerformanceChart();
+}
+
+function resetPerformanceChart() {
+  performanceHistory = [];
+  chartSummary.textContent = "Aguardando dados da execução.";
+  drawPerformanceChart();
+}
+
 function renderState(state) {
   latestState = state;
   renderBoard(state);
   renderTrajectory(state);
   renderMetrics(state);
+  recordPerformance(state);
 }
 
 function setRunning(isRunning) {
@@ -182,6 +325,7 @@ function paramsFromForm() {
 function startRun(event) {
   event.preventDefault();
   stopRun("Reiniciando");
+  resetPerformanceChart();
 
   const params = paramsFromForm();
   eventSource = new EventSource(`/api/run?${params.toString()}`);
@@ -215,7 +359,9 @@ window.addEventListener("resize", () => {
   if (latestState) {
     drawPath(latestState.route, latestState.invalid_edges);
   }
+  drawPerformanceChart();
 });
 
 createBoard();
 updateRangeLabels();
+drawPerformanceChart();

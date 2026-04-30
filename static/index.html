@@ -123,6 +123,20 @@
             <strong id="metricTime">0s</strong>
           </div>
         </section>
+
+        <section class="performance-panel" aria-label="Grafico de desempenho do Algoritmo Genetico">
+          <div class="performance-header">
+            <h2>Desempenho</h2>
+            <div class="legend">
+              <span class="legend-item fitness">Fitness</span>
+              <span class="legend-item valid">Mov. válidos</span>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="performanceChart" width="640" height="320" aria-label="Evolução do fitness e dos movimentos válidos por geração"></canvas>
+          </div>
+          <p class="chart-summary" id="chartSummary">Aguardando dados da execução.</p>
+        </section>
       </aside>
     </main>
 
